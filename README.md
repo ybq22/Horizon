@@ -16,8 +16,8 @@
 ![Claude](https://img.shields.io/badge/Claude-f0daba?style=flat-square&logo=anthropic&logoColor=black)
 ![GPT](https://img.shields.io/badge/GPT-412991?style=flat-square)
 ![Gemini](https://img.shields.io/badge/Gemini-8E75B2?style=flat-square&logo=google&logoColor=white)
-![DeepSeek](https://img.shields.io/badge/DeepSeek-0A6DC2?style=flat-square&logo=deepseek&logoColor=white)
-![Doubao](https://img.shields.io/badge/Doubao-00D6C2?style=flat-square&logoColor=white)
+![DeepSeek](https://img.shields.io/badge/DeepSeek-0A6DC2?style=flat-square)
+![Doubao](https://img.shields.io/badge/Doubao-00D6C2?style=flat-square)
 
 Horizon collects news from multiple customizable sources, uses AI to score and filter them, and generates a daily briefing — complete with summaries, community discussions, and background explanations in both English and Chinese.
 
@@ -86,6 +86,8 @@ Horizon collects news from multiple customizable sources, uses AI to score and f
 
 ### 1. Install
 
+#### Option A: Local Installation
+
 ```bash
 git clone https://github.com/Thysrael/Horizon.git
 cd horizon
@@ -95,6 +97,24 @@ uv sync
 
 # Or with pip
 pip install -e .
+```
+
+#### Option B: Docker
+
+```bash
+git clone https://github.com/Thysrael/Horizon.git
+cd horizon
+
+# Configure environment
+cp .env.example .env
+cp data/config.example.json data/config.json
+# Edit .env and data/config.json with your API keys and preferences
+
+# Run with Docker Compose
+docker-compose run --rm horizon
+
+# Or run with custom time window
+docker-compose run --rm horizon --hours 48
 ```
 
 ### 2. Configure
@@ -138,9 +158,18 @@ For the full reference, see the [Configuration Guide](docs/configuration.md).
 
 ### 3. Run
 
+#### Local Installation
+
 ```bash
 uv run horizon           # Run with default 24h window
 uv run horizon --hours 48  # Fetch from last 48 hours
+```
+
+#### With Docker
+
+```bash
+docker-compose run --rm horizon           # Run with default 24h window
+docker-compose run --rm horizon --hours 48  # Fetch from last 48 hours
 ```
 
 The generated report will be saved to `data/summaries/`.
@@ -168,11 +197,11 @@ Horizon works great as a **GitHub Actions** cron job. See [`.github/workflows/da
 - [x] Community discussion collection
 - [x] GitHub Pages deployment
 - [x] **Email Subscription** (SMTP/IMAP automated newsletter)
+- [x] **Docker deployment support**
 - [x] Web UI dashboard
 - [ ] Slack / Webhook notification
 - [ ] More source types (Twitter/X, Discord, etc.)
 - [ ] Custom scoring prompts per source
-- [ ] Docker deployment support
 
 ## Contributing
 
