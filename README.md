@@ -53,7 +53,7 @@ Horizon collects news from multiple customizable sources, uses AI to score and f
 ## Features
 
 - **📡 Multi-Source Aggregation** — Collects from Hacker News, RSS feeds, Reddit, Telegram channels, and GitHub (releases & user events)
-- **🤖 AI-Powered Scoring** — Uses Claude, GPT-4, Gemini, DeepSeek, Doubao, MiniMax, or any OpenAI-compatible API to rate each item 0-10, filtering out the noise
+- **🤖 AI-Powered Scoring** — Uses Claude, GPT-4, Gemini, DeepSeek, Doubao, MiniMax, Alibaba DashScope (Qwen), or any OpenAI-compatible API to rate each item 0-10, filtering out the noise
 - **🌐 Bilingual Summaries** — Generates daily reports in both English and Chinese
 - **🔍 Content Enrichment** — Searches the web to provide background knowledge for unfamiliar concepts
 - **💬 Community Voices** — Collects and summarizes discussions from comments on HackerNews, Reddit, etc.
@@ -131,7 +131,7 @@ Here's what a config looks like:
 ```jsonc
 {
   "ai": {
-    "provider": "openai",       // or "anthropic", "gemini", "doubao", "minimax"
+    "provider": "openai",       // or "anthropic", "ali", "gemini", "doubao", "minimax"
     "model": "gpt-4",
     "api_key_env": "OPENAI_API_KEY",
     "languages": ["en", "zh"]   // bilingual output

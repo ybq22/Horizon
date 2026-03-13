@@ -35,6 +35,18 @@ Configure which AI model scores and summarizes your content.
 }
 ```
 
+**Alibaba (DashScope / Qwen, OpenAI-compatible)**:
+
+```json
+{
+  "ai": {
+    "provider": "ali",
+    "model": "qwen-plus",
+    "api_key_env": "DASHSCOPE_API_KEY"
+  }
+}
+```
+
 **MiniMax**:
 
 ```json
@@ -54,7 +66,7 @@ Available models: `MiniMax-M2.5`, `MiniMax-M2.5-highspeed`
 ```json
 {
   "ai": {
-    "provider": "anthropic",
+    "provider": "openai",
     "base_url": "https://your-proxy.com/v1",
     ...
   }

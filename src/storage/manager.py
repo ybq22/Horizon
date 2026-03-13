@@ -13,6 +13,7 @@ class StorageManager:
         self.data_dir = Path(data_dir)
         self.config_path = self.data_dir / "config.json"
         self.summaries_dir = self.data_dir / "summaries"
+        self.seen_urls_path = self.data_dir / "seen_urls.json"
 
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.summaries_dir.mkdir(parents=True, exist_ok=True)
@@ -69,3 +70,23 @@ class StorageManager:
         subscribers_path = self.data_dir / "subscribers.json"
         with open(subscribers_path, "w", encoding="utf-8") as f:
             json.dump(subscribers, f, indent=2)
+
+    # ---- Cross-run deduplication: seen URLs ----
+
+    def load_seen_urls(self) -> set[str]:
+        """Load the set of previously seen item URLs (normalized)."""
+        if not self.seen_urls_path.exists():
+            return set()
+        try:
+            with open(self.seen_urls_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, list):
+                return set(str(u) for u in data)
+            return set()
+        except json.JSONDecodeError:
+            return set()
+
+    def save_seen_urls(self, urls: set[str]) -> None:
+        """Persist the set of seen item URLs."""
+        with open(self.seen_urls_path, "w", encoding="utf-8") as f:
+            json.dump(sorted(urls), f, indent=2)

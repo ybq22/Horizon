@@ -10,6 +10,7 @@ from google import genai
 from google.genai import types
 
 from ..models import AIConfig, AIProvider
+from .tokens import record_usage
 
 
 class AIClient(ABC):
@@ -83,7 +84,14 @@ class AnthropicClient(AIClient):
             system=system,
             messages=[{"role": "user", "content": user}]
         )
-
+        # Anthropic usage schema: usage.input_tokens / usage.output_tokens
+        usage = getattr(message, "usage", None)
+        if usage is not None:
+            record_usage(
+                "anthropic",
+                input_tokens=getattr(usage, "input_tokens", 0),
+                output_tokens=getattr(usage, "output_tokens", 0),
+            )
         return message.content[0].text
 
 
@@ -136,7 +144,13 @@ class OpenAIClient(AIClient):
             max_tokens=max_tokens,
             response_format={"type": "json_object"}
         )
-
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            record_usage(
+                "openai",
+                input_tokens=getattr(usage, "prompt_tokens", 0),
+                output_tokens=getattr(usage, "completion_tokens", 0),
+            )
         return response.choices[0].message.content
 
 
@@ -196,7 +210,59 @@ class MiniMaxClient(AIClient):
             temperature=temperature,
             max_tokens=max_tokens,
         )
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            record_usage(
+                "minimax",
+                input_tokens=getattr(usage, "prompt_tokens", 0),
+                output_tokens=getattr(usage, "completion_tokens", 0),
+            )
+        return response.choices[0].message.content
 
+
+class AliClient(AIClient):
+    """Client for Alibaba DashScope OpenAI-compatible API."""
+
+    def __init__(self, config: AIConfig):
+        api_key = os.getenv(config.api_key_env)
+        if not api_key:
+            raise ValueError(f"Missing API key: {config.api_key_env}")
+
+        # DashScope OpenAI-compatible mode endpoint:
+        # https://dashscope.aliyuncs.com/compatible-mode/v1
+        kwargs = {
+            "api_key": api_key,
+            "base_url": config.base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        }
+
+        self.client = AsyncOpenAI(**kwargs)
+        self.model = config.model
+        self.max_tokens = config.max_tokens
+
+    async def complete(
+        self,
+        system: str,
+        user: str,
+        temperature: float = 0.3,
+        max_tokens: int = 4096
+    ) -> str:
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user}
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"}
+        )
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            record_usage(
+                "ali",
+                input_tokens=getattr(usage, "prompt_tokens", 0),
+                output_tokens=getattr(usage, "completion_tokens", 0),
+            )
         return response.choices[0].message.content
 
 
@@ -246,7 +312,13 @@ class GeminiClient(AIClient):
                 response_mime_type="application/json"
             )
         )
-
+        # Google GenAI usage: response.usage_metadata.prompt_token_count / total_token_count
+        usage = getattr(response, "usage_metadata", None)
+        if usage is not None:
+            total = getattr(usage, "total_token_count", 0) or 0
+            prompt = getattr(usage, "prompt_token_count", 0) or 0
+            completion = max(0, total - prompt)
+            record_usage("gemini", input_tokens=prompt, output_tokens=completion)
         return response.text
 
 
@@ -266,6 +338,8 @@ def create_ai_client(config: AIConfig) -> AIClient:
         return AnthropicClient(config)
     elif config.provider == AIProvider.OPENAI:
         return OpenAIClient(config)
+    elif config.provider == AIProvider.ALI:
+        return AliClient(config)
     elif config.provider == AIProvider.GEMINI:
         return GeminiClient(config)
     elif config.provider == AIProvider.DOUBAO:
