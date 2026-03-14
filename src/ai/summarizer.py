@@ -25,6 +25,7 @@ LABELS = {
         "discussion": "Discussion",
         "references": "References",
         "tags": "Tags",
+        "back_to_top": "Back to top",
         "empty_body": (
             "No significant developments today. This might indicate:\n"
             "- A quiet day in your tracked sources\n"
@@ -43,6 +44,7 @@ LABELS = {
         "discussion": "社区讨论",
         "references": "参考链接",
         "tags": "标签",
+        "back_to_top": "回到目录",
         "empty_body": (
             "今日暂无重要动态，可能原因：\n"
             "- 今天关注的信息源较平静\n"
@@ -89,6 +91,7 @@ class DailySummarizer:
             return self._generate_empty_summary(date, total_fetched, labels)
 
         header = (
+            "<a id=\"top\"></a>\n"
             f"# {labels['header']} - {date}\n\n"
             f"> From {total_fetched} items, {len(items)} important content pieces were selected\n\n"
             "---\n\n"
@@ -97,12 +100,20 @@ class DailySummarizer:
         # TOC
         toc_entries = []
         for i, item in enumerate(items):
+            # Only show truly top-tier items in the TOC
+            score_value = item.ai_score or 0
+            if score_value < 8.0:
+                continue
             t = (item.metadata.get(f"title_{language}") or item.title).replace("[", "(").replace("]", ")")
             if language == "zh":
                 t = _pangu(t)
-            score = item.ai_score or "?"
-            toc_entries.append(f"{i + 1}. [{t}](#item-{i + 1}) \u2b50\ufe0f {score}/10")
-        toc = "\n".join(toc_entries) + "\n\n---\n\n"
+            score_display = score_value or "?"
+            toc_entries.append(f"{i + 1}. [{t}](#item-{i + 1}) \u2b50\ufe0f {score_display}/10")
+        toc = ""
+        if toc_entries:
+            toc = "\n".join(toc_entries) + "\n\n---\n\n"
+        else:
+            toc = "_No items scored 8 or above today._\n\n---\n\n"
 
         parts = [self._format_item(item, labels, language, i + 1) for i, item in enumerate(items)]
 
@@ -180,6 +191,10 @@ class DailySummarizer:
             tags_str = ", ".join([f"`#{t}`" for t in item.ai_tags])
             lines.append("")
             lines.append(f"**{labels['tags']}**: {tags_str}")
+
+        # Back-to-top helper
+        lines.append("")
+        lines.append(f"[{labels['back_to_top']}](#top)")
 
         lines.append("")
         lines.append("---")

@@ -164,6 +164,7 @@ class ContentAnalyzer:
             source=f"{item.source_type.value}",
             author=item.author or "Unknown",
             url=str(item.url),
+            category=meta.get("category", ""),
             content_section=content_section,
             discussion_section=discussion_section
         )

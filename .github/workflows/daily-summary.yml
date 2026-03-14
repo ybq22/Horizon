@@ -1,9 +1,10 @@
 name: Daily Horizon Summary
 
 on:
-  # schedule:
-  #   - cron: '0 0 */2 * *'  # Runs every 2 days at 00:00 UTC
   workflow_dispatch:      # Allow manual trigger
+  schedule:
+    - cron: '30 0 * * *'  # Runs every 2 days at 00:00 UTC
+  
 
 jobs:
   daily-summary:
@@ -18,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.10"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
@@ -33,8 +34,9 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
           LWN_KEY: ${{ secrets.LWN_KEY }}
-        run: uv run horizon --hours 48
+        run: uv run horizon
 
       - name: Set current date as environment variable
         run: echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV

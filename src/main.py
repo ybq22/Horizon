@@ -37,6 +37,11 @@ def main():
 
     parser = argparse.ArgumentParser(description="Horizon - AI-Driven Information Aggregation System")
     parser.add_argument("--hours", type=int, help="Force fetch from last N hours")
+    parser.add_argument(
+        "--no-seen-dedup",
+        action="store_true",
+        help="Disable cross-run URL deduplication: do not skip items from data/seen_urls.json and do not update it",
+    )
     args = parser.parse_args()
 
     try:
@@ -63,7 +68,7 @@ def main():
 
         # Create and run orchestrator
         orchestrator = HorizonOrchestrator(config, storage)
-        asyncio.run(orchestrator.run(force_hours=args.hours))
+        asyncio.run(orchestrator.run(force_hours=args.hours, skip_seen_dedup=args.no_seen_dedup))
 
     except KeyboardInterrupt:
         console.print("\n[yellow]⚠️  Interrupted by user[/yellow]")

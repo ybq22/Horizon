@@ -39,11 +39,12 @@ class HorizonOrchestrator:
         self.console = Console()
         self.email_manager = EmailManager(config.email, console=self.console) if config.email else None
 
-    async def run(self, force_hours: int = None) -> None:
+    async def run(self, force_hours: int = None, skip_seen_dedup: bool = False) -> None:
         """Execute the complete workflow.
 
         Args:
             force_hours: Optional override for time window in hours
+            skip_seen_dedup: If True, do not filter by seen_urls and do not update seen_urls.json
         """
         self.console.print("[bold cyan]🌅 Horizon - Starting aggregation...[/bold cyan]\n")
 
@@ -61,20 +62,24 @@ class HorizonOrchestrator:
             all_items = await self.fetch_all_sources(since)
             self.console.print(f"📥 Fetched {len(all_items)} items from all sources\n")
 
-            # 2.5 Cross-run deduplication: skip items we've already seen in previous runs
-            seen_urls = self.storage.load_seen_urls()
-            if seen_urls:
-                before = len(all_items)
-                all_items = [
-                    item
-                    for item in all_items
-                    if self._normalize_url(str(item.url)) not in seen_urls
-                ]
-                removed = before - len(all_items)
-                if removed > 0:
-                    self.console.print(
-                        f"🧹 Skipped {removed} items seen in previous runs\n"
-                    )
+            # 2.5 Cross-run deduplication: skip items we've already seen in previous runs (unless --no-seen-dedup)
+            seen_urls = set()
+            if not skip_seen_dedup:
+                seen_urls = self.storage.load_seen_urls()
+                if seen_urls:
+                    before = len(all_items)
+                    all_items = [
+                        item
+                        for item in all_items
+                        if self._normalize_url(str(item.url)) not in seen_urls
+                    ]
+                    removed = before - len(all_items)
+                    if removed > 0:
+                        self.console.print(
+                            f"🧹 Skipped {removed} items seen in previous runs\n"
+                        )
+            else:
+                self.console.print("[dim]Cross-run deduplication disabled (--no-seen-dedup)[/dim]\n")
 
             if not all_items:
                 self.console.print("[yellow]No new content found. Exiting.[/yellow]")
@@ -87,11 +92,12 @@ class HorizonOrchestrator:
                     f"🔗 Merged {len(all_items) - len(merged_items)} cross-source duplicates "
                     f"→ {len(merged_items)} unique items\n"
                 )
-            # Update seen URLs with everything we fetched this run (after cross-source merge)
-            new_urls = {self._normalize_url(str(item.url)) for item in merged_items}
-            if new_urls:
-                updated_seen = seen_urls | new_urls
-                self.storage.save_seen_urls(updated_seen)
+            # Update seen URLs with everything we fetched this run (unless --no-seen-dedup)
+            if not skip_seen_dedup:
+                new_urls = {self._normalize_url(str(item.url)) for item in merged_items}
+                if new_urls:
+                    updated_seen = seen_urls | new_urls
+                    self.storage.save_seen_urls(updated_seen)
 
             # 4. Analyze with AI
             analyzed_items = await self._analyze_content(merged_items)
