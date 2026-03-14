@@ -10,6 +10,7 @@ from google import genai
 from google.genai import types
 
 from ..models import AIConfig, AIProvider
+from .tokens import record_usage
 
 
 class AIClient(ABC):
@@ -83,7 +84,13 @@ class AnthropicClient(AIClient):
             system=system,
             messages=[{"role": "user", "content": user}]
         )
-
+        usage = getattr(message, "usage", None)
+        if usage is not None:
+            record_usage(
+                "anthropic",
+                input_tokens=getattr(usage, "input_tokens", 0),
+                output_tokens=getattr(usage, "output_tokens", 0),
+            )
         return message.content[0].text
 
 
@@ -136,7 +143,13 @@ class OpenAIClient(AIClient):
             max_tokens=max_tokens,
             response_format={"type": "json_object"}
         )
-
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            record_usage(
+                "openai",
+                input_tokens=getattr(usage, "prompt_tokens", 0),
+                output_tokens=getattr(usage, "completion_tokens", 0),
+            )
         return response.choices[0].message.content
 
 
@@ -196,7 +209,13 @@ class MiniMaxClient(AIClient):
             temperature=temperature,
             max_tokens=max_tokens,
         )
-
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            record_usage(
+                "minimax",
+                input_tokens=getattr(usage, "prompt_tokens", 0),
+                output_tokens=getattr(usage, "completion_tokens", 0),
+            )
         return response.choices[0].message.content
 
 
@@ -246,7 +265,12 @@ class GeminiClient(AIClient):
                 response_mime_type="application/json"
             )
         )
-
+        usage = getattr(response, "usage_metadata", None)
+        if usage is not None:
+            total = getattr(usage, "total_token_count", 0) or 0
+            prompt = getattr(usage, "prompt_token_count", 0) or 0
+            completion = max(0, total - prompt)
+            record_usage("gemini", input_tokens=prompt, output_tokens=completion)
         return response.text
 
 

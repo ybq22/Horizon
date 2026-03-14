@@ -21,6 +21,7 @@ from .ai.client import create_ai_client
 from .ai.analyzer import ContentAnalyzer
 from .ai.summarizer import DailySummarizer
 from .ai.enricher import ContentEnricher
+from .ai.tokens import get_usage_snapshot
 
 
 class HorizonOrchestrator:
@@ -161,6 +162,20 @@ class HorizonOrchestrator:
                     self.email_manager.send_daily_summary(summary, subject, subscribers)
 
             self.console.print("[bold green]✅ Horizon completed successfully![/bold green]")
+            usage = get_usage_snapshot()
+            if usage.total_tokens > 0:
+                self.console.print(
+                    f"\n🧮 Token usage this run: "
+                    f"{usage.total_tokens} tokens "
+                    f"(input: {usage.total_input_tokens}, output: {usage.total_output_tokens})"
+                )
+                for provider, u in sorted(usage.per_provider.items()):
+                    if u.total <= 0:
+                        continue
+                    self.console.print(
+                        f"   • {provider}: {u.total} tokens "
+                        f"(in: {u.input_tokens}, out: {u.output_tokens})"
+                    )
 
         except Exception as e:
             self.console.print(f"[bold red]❌ Error: {e}[/bold red]")
