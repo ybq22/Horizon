@@ -200,6 +200,58 @@ class MiniMaxClient(AIClient):
         return response.choices[0].message.content
 
 
+class AliClient(AIClient):
+    """Client for Alibaba DashScope (OpenAI-compatible API)."""
+
+    def __init__(self, config: AIConfig):
+        """Initialize DashScope client.
+
+        Args:
+            config: AI configuration
+        """
+        api_key = os.getenv(config.api_key_env)
+        if not api_key:
+            raise ValueError(f"Missing API key: {config.api_key_env}")
+
+        kwargs = {
+            "api_key": api_key,
+            "base_url": config.base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        }
+        self.client = AsyncOpenAI(**kwargs)
+        self.model = config.model
+        self.max_tokens = config.max_tokens
+
+    async def complete(
+        self,
+        system: str,
+        user: str,
+        temperature: float = 0.3,
+        max_tokens: int = 4096
+    ) -> str:
+        """Generate completion using DashScope.
+
+        Args:
+            system: System prompt
+            user: User prompt
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens to generate
+
+        Returns:
+            str: Generated text
+        """
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user}
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"}
+        )
+        return response.choices[0].message.content
+
+
 class GeminiClient(AIClient):
     """Client for Google Gemini models."""
 
@@ -266,6 +318,8 @@ def create_ai_client(config: AIConfig) -> AIClient:
         return AnthropicClient(config)
     elif config.provider == AIProvider.OPENAI:
         return OpenAIClient(config)
+    elif config.provider == AIProvider.ALI:
+        return AliClient(config)
     elif config.provider == AIProvider.GEMINI:
         return GeminiClient(config)
     elif config.provider == AIProvider.DOUBAO:
